@@ -91,6 +91,38 @@ if (window.location.search.includes("peek_mode=1")) {
             });
         }, 10); // 10ms is imperceptible to the user but enough for the DOM to update
     }, true);
+
+    // 5. Cinematic Fade Logic (Auto-hide controls)
+    let hideTimer;
+    
+    const handleActivity = () => {
+        const body = document.body;
+        
+        // Make controls visible
+        if (!body.classList.contains('peek-ui-active')) {
+            body.classList.add('peek-ui-active');
+        }
+
+        // Clear existing timer
+        clearTimeout(hideTimer);
+
+        // Set new timer to hide after 2.5 seconds
+        hideTimer = setTimeout(() => {
+            // Safety check: Don't hide if user is hovering the controls
+            const controls = document.getElementById('peek-controls');
+            if (controls && !controls.matches(':hover')) {
+                body.classList.remove('peek-ui-active');
+            }
+        }, 2500);
+    };
+
+    // Listen for movement or interaction
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    
+    // Trigger once on load so buttons are visible initially
+    handleActivity();
 } 
 
 // === SCENARIO B: MAIN PAGE (The Injector) ===

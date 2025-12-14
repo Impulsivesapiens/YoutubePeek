@@ -113,10 +113,24 @@ body#peek-body .ytp-chrome-bottom {
     position: fixed; top: 20px; right: 20px;
     z-index: 2147483647 !important; /* Max Z-Index */
     display: flex; gap: 10px;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: none; /* Let clicks pass through when hidden */
 }
-body#peek-body:hover #peek-controls { opacity: 1; }
 
+/* 1. Show when JS detects activity */
+body#peek-body.peek-ui-active #peek-controls {
+    opacity: 1;
+    pointer-events: auto; /* Re-enable clicks */
+}
+
+/* 2. ALWAYS show when hovering the buttons themselves (overrides timer) */
+#peek-controls:hover {
+    opacity: 1 !important;
+    pointer-events: auto;
+}
+
+/* Button Styling (Unchanged, just ensuring pointer-events are safe) */
 .peek-ctrl-btn {
     width: 40px; height: 40px;
     background: rgba(0, 0, 0, 0.7);
@@ -125,6 +139,7 @@ body#peek-body:hover #peek-controls { opacity: 1; }
     display: flex; align-items: center; justify-content: center;
     cursor: pointer;
     backdrop-filter: blur(4px);
+    pointer-events: auto; /* Ensure buttons are clickable */
 }
 .peek-ctrl-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
 .peek-ctrl-btn svg { width: 20px; height: 20px; fill: white; }
