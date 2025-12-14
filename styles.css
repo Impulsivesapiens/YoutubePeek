@@ -1,0 +1,130 @@
+/* ================================================== */
+/* === 1. PEEK UI ELEMENTS (The Buttons & Modal) === */
+/* ================================================== */
+
+/* The "Peek" Button on Thumbnails */
+.yt-peek-btn {
+    position: absolute; top: 5px; right: 5px; z-index: 2000;
+    width: 28px; height: 28px; 
+    background: rgba(0,0,0,0.6); /* Darker for better visibility */
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; opacity: 0; transition: all 0.2s; 
+    backdrop-filter: blur(3px);
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.yt-peek-btn svg { width: 16px; height: 16px; fill: white; }
+
+/* Show button on hover (Handles both old and new YouTube layouts) */
+.yt-lockup-view-model__content-image:hover .yt-peek-btn, 
+ytd-thumbnail:hover .yt-peek-btn, 
+a#thumbnail:hover .yt-peek-btn,
+a:hover > .yt-peek-btn { 
+    opacity: 1; 
+}
+.yt-peek-btn:hover { background: rgba(255, 0, 0, 0.8); transform: scale(1.1); border-color: white; }
+
+/* The Modal Container (Injector Page) */
+.yt-peek-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85); z-index: 99999; /* Highest possible */
+    display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(5px);
+}
+.yt-peek-container {
+    position: relative; width: 80%; max-width: 1200px; aspect-ratio: 16/9;
+    background: black; box-shadow: 0 0 50px rgba(0,0,0,0.8); 
+    border-radius: 12px; overflow: hidden;
+}
+.yt-peek-iframe { width: 100%; height: 100%; border: none; }
+
+
+/* ================================================== */
+/* === 2. ZEN MODE (Inside the Iframe)             === */
+/* ================================================== */
+/* This logic only applies when body id="peek-body" */
+
+/* A. SET THE STAGE TO BLACK */
+body#peek-body, 
+body#peek-body ytd-app, 
+body#peek-body ytd-watch-flexy,
+body#peek-body #columns,
+body#peek-body #primary,
+body#peek-body #player {
+    background: black !important;
+    overflow: hidden !important; /* Disable scrolling completely */
+    min-height: 100vh !important;
+}
+
+/* B. HIDE THE CLUTTER (The "Subtraction" Strategy) */
+/* Instead of covering them, we simply do not display them. */
+body#peek-body #masthead-container,  /* Top Search Bar */
+body#peek-body #secondary,           /* Sidebar / Recommendations */
+body#peek-body #related,             /* Related Videos */
+body#peek-body #comments,            /* Comments Section */
+body#peek-body #below,               /* Description & Metadata */
+body#peek-body #chat-container,      /* Live Chat */
+body#peek-body .ytp-chrome-top,      /* Video Title Overlay (Optional) */
+body#peek-body #panels,              /* Engagement Panels */
+body#peek-body ytd-merch-shelf-renderer { /* Merchandise Shelf */
+    display: none !important;
+}
+
+/* C. FORCE PLAYER TO FULL VIEWPORT */
+/* We physically stretch the player container to fill the screen. */
+body#peek-body #player-container-outer,
+body#peek-body #player-container-inner,
+body#peek-body #player-container,
+body#peek-body #ytd-player,
+body#peek-body #container,
+body#peek-body #movie_player {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 100 !important; /* Sufficient since everything else is hidden */
+    background: black !important;
+}
+
+/* D. STRETCH THE VIDEO ELEMENT */
+body#peek-body video.video-stream,
+body#peek-body .html5-main-video {
+    width: 100vw !important;
+    height: 100vh !important;
+    left: 0 !important;
+    top: 0 !important;
+    object-fit: contain !important; /* Ensures whole video is visible */
+}
+
+/* E. ADJUST CONTROLS POSITION */
+/* Since the player is full width, we need to ensure controls aren't cut off */
+body#peek-body .ytp-chrome-bottom {
+    width: 98% !important;
+    left: 1% !important;
+    bottom: 10px !important;
+}
+
+/* F. CUSTOM PEEK CONTROLS (Top Right) */
+#peek-controls {
+    position: fixed; top: 20px; right: 20px;
+    z-index: 2147483647 !important; /* Max Z-Index */
+    display: flex; gap: 10px;
+    opacity: 0; transition: opacity 0.3s;
+}
+body#peek-body:hover #peek-controls { opacity: 1; }
+
+.peek-ctrl-btn {
+    width: 40px; height: 40px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+}
+.peek-ctrl-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
+.peek-ctrl-btn svg { width: 20px; height: 20px; fill: white; }
