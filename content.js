@@ -76,6 +76,21 @@ if (window.location.search.includes("peek_mode=1")) {
             e.stopImmediatePropagation();
         }
     }, true);
+
+    // 4. Disable "Miniplayer" in Context Menu
+    window.addEventListener('contextmenu', (e) => {
+        // We use a tiny timeout to let YouTube render the menu first
+        setTimeout(() => {
+            const menuItems = document.querySelectorAll('.ytp-menuitem');
+            menuItems.forEach(item => {
+                const label = item.querySelector('.ytp-menuitem-label');
+                // Check if the label exists and contains "Miniplayer"
+                if (label && label.textContent.trim() === "Miniplayer") {
+                    item.style.display = 'none';
+                }
+            });
+        }, 10); // 10ms is imperceptible to the user but enough for the DOM to update
+    }, true);
 } 
 
 // === SCENARIO B: MAIN PAGE (The Injector) ===
