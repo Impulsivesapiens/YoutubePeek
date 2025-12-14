@@ -1,33 +1,69 @@
-// YouTube Peek: API-Level Resizer (Runs in Main World)
+// YouTube Peek: API-Level Resizer & State Monitor (Runs in Main World)
+
+let lastWidth = 0;
+let lastHeight = 0;
+
+// Helper: Am I in the Peek Window?
+// We check the URL param OR the window name (for robustness)
+const isPeekMode = () => window.location.search.includes("peek_mode=1") || window.name === "yt-peek-view";
 
 function forcePlayerResize() {
-    // Only run if we are in the Peek Window
-    if (!window.location.search.includes("peek_mode=1")) return;
+    if (!isPeekMode()) return;
 
-    // Find the internal player object
     const player = document.getElementById('movie_player');
     
-    if (player && typeof player.setSize === 'function') {
-        // 1. Calculate real window size
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+    if (player) {
+        // --- A. SMART RESIZE ---
+        const currentWidth = window.innerWidth;
+        const currentHeight = window.innerHeight;
 
-        // 2. TELL YOUTUBE: "You are this big now."
-        // This forces the scrubber math and chapter bars to recalculate.
-        player.setSize(width, height);
-        
-        // 3. Force the video element to match
-        const video = document.querySelector('video');
-        if (video) {
-            video.style.width = width + 'px';
-            video.style.height = height + 'px';
+        if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
+            if (typeof player.setSize === 'function') {
+                player.setSize(currentWidth, currentHeight);
+                
+                const video = document.querySelector('video');
+                if (video) {
+                    video.style.width = currentWidth + 'px';
+                    video.style.height = currentHeight + 'px';
+                }
+                lastWidth = currentWidth;
+                lastHeight = currentHeight;
+            }
+        }
+
+        // --- B. AUTO-CLOSE MONITOR ---
+        // State 0 = Ended
+        if (typeof player.getPlayerState === 'function') {
+            if (player.getPlayerState() === 0) {
+                window.postMessage({ type: "PEEK_VideoEnded" }, "*");
+            }
         }
     }
 }
 
-// Run continuously to catch any layout shifts
-setInterval(forcePlayerResize, 1000);
+// --- C. NAVIGATION TRAP (Stops Autoplay) ---
+// If YouTube tries to navigate to a new video, we intercept it and close the modal.
+if (isPeekMode()) {
+    const originalPush = history.pushState;
+    history.pushState = function(...args) {
+        // If the navigation is to a new watch page, kill it.
+        if (args[2] && args[2].includes('/watch?v=')) {
+            window.postMessage({ type: "PEEK_VideoEnded" }, "*");
+            return; // Block the navigation
+        }
+        return originalPush.apply(this, args);
+    };
 
-// Run immediately on load
+    const originalReplace = history.replaceState;
+    history.replaceState = function(...args) {
+        if (args[2] && args[2].includes('/watch?v=')) {
+            window.postMessage({ type: "PEEK_VideoEnded" }, "*");
+            return; 
+        }
+        return originalReplace.apply(this, args);
+    };
+}
+
+setInterval(forcePlayerResize, 500);
 window.addEventListener('load', forcePlayerResize);
 forcePlayerResize();

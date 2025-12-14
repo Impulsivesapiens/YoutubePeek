@@ -17,7 +17,7 @@
 /* Show button on hover (Handles both old and new YouTube layouts) */
 .yt-lockup-view-model__content-image:hover .yt-peek-btn, 
 ytd-thumbnail:hover .yt-peek-btn, 
-a#thumbnail:hover .yt-peek-btn,
+a#thumbnail:hover .yt-peek-btn, 
 a:hover > .yt-peek-btn { 
     opacity: 1; 
 }
@@ -55,17 +55,37 @@ body#peek-body #player {
     min-height: 100vh !important;
 }
 
-/* B. HIDE THE CLUTTER (The "Subtraction" Strategy) */
-/* Instead of covering them, we simply do not display them. */
-body#peek-body #masthead-container,  /* Top Search Bar */
-body#peek-body #secondary,           /* Sidebar / Recommendations */
-body#peek-body #related,             /* Related Videos */
-body#peek-body #comments,            /* Comments Section */
-body#peek-body #below,               /* Description & Metadata */
-body#peek-body #chat-container,      /* Live Chat */
-body#peek-body .ytp-chrome-top,      /* Video Title Overlay (Optional) */
-body#peek-body #panels,              /* Engagement Panels */
-body#peek-body ytd-merch-shelf-renderer { /* Merchandise Shelf */
+/* B. THE SPOTLIGHT (Structural Filtering) */
+/* Logic: "If a container holds the player, keep it. 
+   If a sibling container does NOT hold the player, hide it."
+   This automatically kills sidebars, comments, and shelves without knowing their IDs. */
+
+/* 1. Base Cleanup: Global elements that are never parents of the player */
+body#peek-body ytd-masthead, 
+body#peek-body tp-yt-app-drawer,
+body#peek-body #masthead-container {
+    display: none !important;
+}
+
+/* 2. Watch Page Root: Hide anything that isn't the main column structure */
+body#peek-body ytd-watch-flexy > :not(:has(#movie_player)) {
+    display: none !important;
+}
+
+/* 3. Columns Wrapper: Hide the sidebar (#secondary) automatically */
+/* We target the children of #columns. Only the one containing #movie_player survives. */
+body#peek-body #columns > :not(:has(#movie_player)) {
+    display: none !important;
+}
+
+/* 4. Primary Column: Hide comments, metadata, and merch shelves (#primary children) */
+/* Usually #player-container is the only child here that holds #movie_player */
+body#peek-body #primary > :not(:has(#movie_player)) {
+    display: none !important;
+}
+
+/* 5. Player Wrapper: Hide any unexpected siblings inside the player container */
+body#peek-body #player > :not(:has(#movie_player)) {
     display: none !important;
 }
 
@@ -108,7 +128,21 @@ body#peek-body .ytp-chrome-bottom {
     bottom: 10px !important;
 }
 
-/* F. CUSTOM PEEK CONTROLS (Top Right) */
+/* E. HIDE END SCREEN CLUTTER (UPDATED) */
+body#peek-body .ytp-endscreen-content,              /* The main thumbnail wall */
+body#peek-body .ytp-ce-element,                     /* Floating end cards */
+body#peek-body .ytp-upnext,                         /* "Up Next" circle */
+body#peek-body .ytp-autonav-endscreen-button-container, 
+body#peek-body .ytp-pause-overlay,                  /* Pause screen suggestions */
+body#peek-body .ytp-pause-overlay-container,        /* Wrapper for pause screen */                  /* Main endscreen container */
+body#peek-body .ytp-related-panel,                  /* Drawer that slides up */
+body#peek-body .ytp-suggestion-set,                 /* Suggestion sets */
+body#peek-body .ytp-cued-thumbnail-overlay,         /* Main thumbnail wall */
+body#peek-body .html5-endscreen { /* NEW: Hides the main videowall */
+    display: none !important;
+}
+
+/* G. CUSTOM PEEK CONTROLS (Top Right) */
 #peek-controls {
     position: fixed; top: 20px; right: 20px;
     z-index: 2147483647 !important; /* Max Z-Index */
@@ -143,3 +177,15 @@ body#peek-body.peek-ui-active #peek-controls {
 }
 .peek-ctrl-btn:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.1); }
 .peek-ctrl-btn svg { width: 20px; height: 20px; fill: white; }
+
+/* H. EXIT ANIMATION (The "Little Animation") */
+@keyframes peekFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+body#peek-body.peek-closing {
+    /* Since the container behind the iframe is black, lowering opacity creates a "Fade to Black" */
+    animation: peekFadeOut 1.0s ease-in-out forwards; 
+    pointer-events: none !important;
+}
