@@ -130,18 +130,29 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
 else if (window.self === window.top) {
     window.addEventListener('DOMContentLoaded', () => {
         const observer = new MutationObserver(() => {
-            const targets = document.querySelectorAll('a[href^="/watch?v="]:has(img)');
+            // 1. SELECTOR UPDATE: Targets both "Old" (ytd-thumbnail) and "New" (view-model) layouts
+            const targets = document.querySelectorAll(`
+                ytd-thumbnail a[href^="/watch?v="], 
+                a.yt-lockup-view-model__content-image[href^="/watch?v="]
+            `);
+
             targets.forEach(target => {
+                // Prevent duplicate buttons
                 if (target.dataset.peekProcessed) return;
                 
+                // Get Video ID safely
                 let videoId = null;
                 try { 
                     const url = new URL(target.href);
                     videoId = url.searchParams.get('v');
                 } catch(e){ return; }
+                
                 if (!videoId) return;
 
+                // Mark processed immediately
                 target.dataset.peekProcessed = "true";
+
+                // Create Button
                 const btn = document.createElement('div');
                 btn.innerHTML = ICON_PEEK;
                 btn.className = 'yt-peek-btn';
@@ -153,11 +164,18 @@ else if (window.self === window.top) {
                     openPeekModal(videoId);
                 });
 
+                // VITAL: Force relative positioning so the absolute button stays inside the thumbnail
                 const currentPos = window.getComputedStyle(target).position;
-                if (currentPos === 'static') target.style.position = 'relative';
+                if (currentPos === 'static') {
+                    target.style.position = 'relative';
+                    target.style.display = 'block'; // Ensures the anchor behaves like a box
+                }
+                
                 target.appendChild(btn);
             });
         });
+
+        // Start observing
         observer.observe(document.body, { childList: true, subtree: true });
     });
 }
