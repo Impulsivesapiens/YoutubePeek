@@ -128,7 +128,6 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
 
 // === SCENARIO B: MAIN PAGE (The Injector) ===
 else if (window.self === window.top) {
-    // Helper: Debounce function to limit CPU usage
     const debounce = (func, wait) => {
         let timeout;
         return (...args) => {
@@ -138,9 +137,7 @@ else if (window.self === window.top) {
     };
 
     window.addEventListener('DOMContentLoaded', () => {
-        // Optimized: Uses debounce to run at most once every 200ms
         const handleMutations = debounce(() => {
-            // 1. SELECTOR UPDATE: Targets both "Old" (ytd-thumbnail) and "New" (view-model) layouts
             const targets = document.querySelectorAll(`
                 ytd-thumbnail a[href^="/watch?v="], 
                 a.yt-lockup-view-model__content-image[href^="/watch?v="]
@@ -150,44 +147,49 @@ else if (window.self === window.top) {
                 // Prevent duplicate buttons
                 if (target.dataset.peekProcessed) return;
                 
-                // Get Video ID safely
-                let videoId = null;
-                try { 
-                    const url = new URL(target.href);
-                    videoId = url.searchParams.get('v');
-                } catch(e){ return; }
-                
-                if (!videoId) return;
-
-                // Mark processed immediately
+                // Mark processed immediately to avoid double-adding
                 target.dataset.peekProcessed = "true";
 
                 // Create Button
                 const btn = document.createElement('div');
-                btn.innerHTML = ICON_PEEK; //
+                btn.innerHTML = ICON_PEEK; 
                 btn.className = 'yt-peek-btn';
                 btn.title = "Peek";
                 
+                // --- THE FIX STARTS HERE ---
+                // Instead of passing a fixed 'videoId' variable, we read the href 
+                // AT THE MOMENT OF THE CLICK.
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    openPeekModal(videoId);
-                });
 
-                // VITAL: Force relative positioning so the absolute button stays inside the thumbnail
+                    // 1. Get the LIVE url from the anchor tag (target)
+                    // This ensures we get the current video, even if YouTube recycled the element.
+                    let currentVideoId = null;
+                    try { 
+                        const currentUrl = new URL(target.href);
+                        currentVideoId = currentUrl.searchParams.get('v');
+                    } catch(err) { console.error("Peek: Bad URL", err); }
+
+                    // 2. Open modal only if we found an ID
+                    if (currentVideoId) {
+                        openPeekModal(currentVideoId);
+                    }
+                });
+                // --- THE FIX ENDS HERE ---
+
+                // Positioning Fix
                 const currentPos = window.getComputedStyle(target).position;
                 if (currentPos === 'static') {
                     target.style.position = 'relative';
-                    target.style.display = 'block'; // Ensures the anchor behaves like a box
+                    target.style.display = 'block'; 
                 }
                 
                 target.appendChild(btn);
             });
-        }, 200); // 200ms delay
+        }, 200); 
 
         const observer = new MutationObserver(handleMutations);
-
-        // Start observing
         observer.observe(document.body, { childList: true, subtree: true });
     });
 }
