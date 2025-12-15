@@ -1,49 +1,46 @@
 // YouTube Peek: API-Level Resizer & State Monitor (Runs in Main World)
 
-let lastWidth = 0;
-let lastHeight = 0;
-
 // Helper: Am I in the Peek Window?
 // We check the URL param OR the window name (for robustness)
 const isPeekMode = () => window.location.search.includes("peek_mode=1") || window.name === "yt-peek-view";
 
-function forcePlayerResize() {
-    if (!isPeekMode()) return;
+if (isPeekMode()) {
+    // FIX APPLIED: Removed global 'const player' to prevent race conditions.
+    // We now fetch it dynamically inside the functions below.
 
-    const player = document.getElementById('movie_player');
-    
-    if (player) {
-        // --- A. SMART RESIZE ---
-        const currentWidth = window.innerWidth;
-        const currentHeight = window.innerHeight;
+    // --- 1. OPTIMIZED RESIZER (Replaces old polling) ---
+    // Only runs when the window size actually changes (0 CPU cost otherwise)
+    const resizeObserver = new ResizeObserver(entries => {
+        // FIX: Fetch player here to ensure it exists
+        const player = document.getElementById('movie_player');
 
-        if (currentWidth !== lastWidth || currentHeight !== lastHeight) {
-            if (typeof player.setSize === 'function') {
-                player.setSize(currentWidth, currentHeight);
-                
-                const video = document.querySelector('video');
-                if (video) {
-                    video.style.width = currentWidth + 'px';
-                    video.style.height = currentHeight + 'px';
-                }
-                lastWidth = currentWidth;
-                lastHeight = currentHeight;
+        if (player && typeof player.setSize === 'function') {
+            player.setSize(window.innerWidth, window.innerHeight);
+            
+            const video = document.querySelector('video');
+            if (video) {
+                video.style.width = window.innerWidth + 'px';
+                video.style.height = window.innerHeight + 'px';
             }
         }
+    });
+    // Attach to body (effectively window size in peek mode)
+    resizeObserver.observe(document.body);
 
-        // --- B. AUTO-CLOSE MONITOR ---
-        // State 0 = Ended
-        if (typeof player.getPlayerState === 'function') {
-            if (player.getPlayerState() === 0) {
+    // --- 2. STATE MONITOR (Reduced Polling) ---
+    // Checks "Video Ended" state every 1s (instead of 500ms)
+    setInterval(() => {
+        // FIX: Fetch player here as well
+        const player = document.getElementById('movie_player');
+
+        if (player && typeof player.getPlayerState === 'function') {
+            if (player.getPlayerState() === 0) { // 0 = Ended
                 window.postMessage({ type: "PEEK_VideoEnded" }, "*");
             }
         }
-    }
-}
+    }, 1000);
 
-// --- C. NAVIGATION TRAP (Stops Autoplay) ---
-// If YouTube tries to navigate to a new video, we intercept it and close the modal.
-if (isPeekMode()) {
+    // --- 3. NAVIGATION TRAP (Stops Autoplay) ---
     const originalPush = history.pushState;
     history.pushState = function(...args) {
         // If the navigation is to a new watch page, kill it.
@@ -63,7 +60,3 @@ if (isPeekMode()) {
         return originalReplace.apply(this, args);
     };
 }
-
-setInterval(forcePlayerResize, 500);
-window.addEventListener('load', forcePlayerResize);
-forcePlayerResize();

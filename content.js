@@ -128,8 +128,18 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
 
 // === SCENARIO B: MAIN PAGE (The Injector) ===
 else if (window.self === window.top) {
+    // Helper: Debounce function to limit CPU usage
+    const debounce = (func, wait) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    };
+
     window.addEventListener('DOMContentLoaded', () => {
-        const observer = new MutationObserver(() => {
+        // Optimized: Uses debounce to run at most once every 200ms
+        const handleMutations = debounce(() => {
             // 1. SELECTOR UPDATE: Targets both "Old" (ytd-thumbnail) and "New" (view-model) layouts
             const targets = document.querySelectorAll(`
                 ytd-thumbnail a[href^="/watch?v="], 
@@ -154,7 +164,7 @@ else if (window.self === window.top) {
 
                 // Create Button
                 const btn = document.createElement('div');
-                btn.innerHTML = ICON_PEEK;
+                btn.innerHTML = ICON_PEEK; //
                 btn.className = 'yt-peek-btn';
                 btn.title = "Peek";
                 
@@ -173,7 +183,9 @@ else if (window.self === window.top) {
                 
                 target.appendChild(btn);
             });
-        });
+        }, 200); // 200ms delay
+
+        const observer = new MutationObserver(handleMutations);
 
         // Start observing
         observer.observe(document.body, { childList: true, subtree: true });

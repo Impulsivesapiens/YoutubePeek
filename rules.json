@@ -22,5 +22,23 @@
       "urlFilter": "*://*.youtube.com/comment_service_ajax*",
       "resourceTypes": ["xmlhttprequest"]
     }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "youtube.com/*chat*", 
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": { "type": "block" },
+    "condition": {
+      "urlFilter": "youtube.com/*log_event*", 
+      "resourceTypes": ["xmlhttprequest", "ping"]
+    }
   }
 ]
