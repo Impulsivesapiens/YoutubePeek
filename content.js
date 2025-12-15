@@ -39,24 +39,38 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
         const controls = document.createElement('div');
         controls.id = 'peek-controls';
         
+        // --- BUTTON 1: MAXIMIZE (New Zen Toggle) ---
+        const maxBtn = document.createElement('div');
+        maxBtn.className = 'peek-ctrl-btn';
+        maxBtn.title = "Maximize";
+        // A simple "Expand" icon
+        maxBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="white"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>`;
+        
+        maxBtn.onclick = () => {
+            // Tell the parent page to toggle the CSS class
+            window.parent.postMessage("toggle-maximize", "*");
+        };
+
+        // --- BUTTON 2: OPEN NEW TAB ---
         const openBtn = document.createElement('div');
         openBtn.className = 'peek-ctrl-btn';
         openBtn.title = "Open Full";
         openBtn.innerHTML = ICON_EXTERNAL;
         
         openBtn.onclick = () => {
-            // Clean URL before opening (remove peek_mode param)
             const cleanUrl = window.location.href.split('&')[0];
             window.open(cleanUrl, '_blank');
             window.parent.postMessage("close-peek", "*");
         };
         
+        // --- BUTTON 3: CLOSE ---
         const closeBtn = document.createElement('div');
         closeBtn.className = 'peek-ctrl-btn';
         closeBtn.title = "Close";
         closeBtn.innerHTML = ICON_CLOSE;
         closeBtn.onclick = () => window.parent.postMessage("close-peek", "*");
 
+        controls.appendChild(maxBtn); // Added first
         controls.appendChild(openBtn);
         controls.appendChild(closeBtn);
         document.body.appendChild(controls);
@@ -196,19 +210,53 @@ else if (window.self === window.top) {
 
 // === SHARED UTILS ===
 function openPeekModal(videoId) {
+    // CHANGE 1: Iframe Reuse Strategy
+    // Instead of always removing the old one, we check if we can just swap the video.
+    // This saves CPU by not rebuilding the DOM structure every time.
     const existing = document.querySelector('.yt-peek-overlay');
-    if (existing) existing.remove();
+    if (existing) {
+        const frame = existing.querySelector('iframe');
+        if (frame) {
+            frame.src = `https://www.youtube.com/watch?v=${videoId}&peek_mode=1`;
+            return; // EXIT EARLY: We just swapped the video, job done.
+        }
+        existing.remove(); // Fallback: If it's broken, kill it.
+    }
     
+    // CHANGE 2: Audio Safety
+    // Find the main page's video and pause it so you don't hear two videos at once.
+    const mainVideo = document.querySelector('video');
+    if (mainVideo && !mainVideo.paused) mainVideo.pause();
+
     const overlay = document.createElement('div');
     overlay.className = 'yt-peek-overlay';
-    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    
+    // CHANGE 3: Centralized Close Function
+    // We create a named function so we can call it from click OR message events.
+    const closePeek = () => {
+        // CHANGE 4: The "Kill Switch" (Critical for RAM)
+        // Navigate the iframe to 'about:blank' BEFORE removing it.
+        // This forces Chrome to dump the heavy YouTube process immediately.
+        if (iframe) iframe.src = "about:blank";
+        
+        // Wait 50ms for the process to detach, then remove the UI.
+        setTimeout(() => {
+            if (overlay) overlay.remove();
+        }, 50);
+
+        // Clean up the listener so it doesn't stack up.
+        window.removeEventListener('message', messageHandler);
+    };
+
+    overlay.onclick = (e) => { 
+        if (e.target === overlay) closePeek(); 
+    };
     
     const container = document.createElement('div');
     container.className = 'yt-peek-container';
     
     const iframe = document.createElement('iframe');
     iframe.src = `https://www.youtube.com/watch?v=${videoId}&peek_mode=1`; 
-    // FIX: Naming the iframe allows us to detect it even if the URL changes
     iframe.name = "yt-peek-view"; 
     iframe.className = 'yt-peek-iframe';
     iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
@@ -217,10 +265,20 @@ function openPeekModal(videoId) {
     overlay.appendChild(container);
     document.body.appendChild(overlay);
     
-    window.addEventListener('message', function closer(e) {
+    // CHANGE 5: Persistent Message Handler
+    // Using the named 'closePeek' function ensures the RAM fix runs however you close it.
+ // 4. Message Handler
+    function messageHandler(e) {
         if (e.data === "close-peek") {
-            overlay.remove();
-            window.removeEventListener('message', closer);
+            closePeek();
         }
-    });
+        // NEW: Handle Maximize Toggle
+        if (e.data === "toggle-maximize") {
+            const container = document.querySelector('.yt-peek-container');
+            if (container) {
+                container.classList.toggle('peek-maximized');
+            }
+        }
+    }
+    window.addEventListener('message', messageHandler);
 }

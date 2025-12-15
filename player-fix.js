@@ -1,19 +1,16 @@
 // YouTube Peek: API-Level Resizer & State Monitor (Runs in Main World)
 
-// Helper: Am I in the Peek Window?
-// We check the URL param OR the window name (for robustness)
 const isPeekMode = () => window.location.search.includes("peek_mode=1") || window.name === "yt-peek-view";
 
 if (isPeekMode()) {
-    // FIX APPLIED: Removed global 'const player' to prevent race conditions.
-    // We now fetch it dynamically inside the functions below.
-
-    // --- 1. OPTIMIZED RESIZER (Replaces old polling) ---
-    // Only runs when the window size actually changes (0 CPU cost otherwise)
-    const resizeObserver = new ResizeObserver(entries => {
-        // FIX: Fetch player here to ensure it exists
+    
+    // --- 1. OPTIMIZED RESIZER (Clean Version) ---
+    // This simply tells the player to match the window size.
+    // Since we are going to use "Zen Maximize" instead of native fullscreen,
+    // we don't need complex fullscreen listeners anymore.
+    
+    const forcePlayerSize = () => {
         const player = document.getElementById('movie_player');
-
         if (player && typeof player.setSize === 'function') {
             player.setSize(window.innerWidth, window.innerHeight);
             
@@ -23,30 +20,38 @@ if (isPeekMode()) {
                 video.style.height = window.innerHeight + 'px';
             }
         }
+    };
+
+    // Trigger on Window Resize (Instant)
+    const resizeObserver = new ResizeObserver(() => {
+        forcePlayerSize();
     });
-    // Attach to body (effectively window size in peek mode)
     resizeObserver.observe(document.body);
 
-    // --- 2. STATE MONITOR (Reduced Polling) ---
-    // Checks "Video Ended" state every 1s (instead of 500ms)
-    setInterval(() => {
-        // FIX: Fetch player here as well
+    // Initial call
+    forcePlayerSize();
+
+
+    // --- 2. STATE MONITOR (Unchanged) ---
+    const attachStateListener = () => {
         const player = document.getElementById('movie_player');
-
-        if (player && typeof player.getPlayerState === 'function') {
-            if (player.getPlayerState() === 0) { // 0 = Ended
-                window.postMessage({ type: "PEEK_VideoEnded" }, "*");
-            }
+        if (player && typeof player.addEventListener === 'function') {
+            player.addEventListener('onStateChange', (state) => {
+                if (state === 0) window.postMessage({ type: "PEEK_VideoEnded" }, "*");
+            });
+        } else {
+            setTimeout(attachStateListener, 1000);
         }
-    }, 1000);
+    };
+    attachStateListener();
 
-    // --- 3. NAVIGATION TRAP (Stops Autoplay) ---
+
+    // --- 3. NAVIGATION TRAP (Unchanged) ---
     const originalPush = history.pushState;
     history.pushState = function(...args) {
-        // If the navigation is to a new watch page, kill it.
         if (args[2] && args[2].includes('/watch?v=')) {
             window.postMessage({ type: "PEEK_VideoEnded" }, "*");
-            return; // Block the navigation
+            return; 
         }
         return originalPush.apply(this, args);
     };

@@ -128,7 +128,7 @@ body#peek-body .ytp-chrome-bottom {
     bottom: 10px !important;
 }
 
-/* E. HIDE END SCREEN CLUTTER (UPDATED) */
+/* G. HIDE END SCREEN CLUTTER (UPDATED) */
 body#peek-body .ytp-endscreen-content,              /* The main thumbnail wall */
 body#peek-body .ytp-ce-element,                     /* Floating end cards */
 body#peek-body .ytp-upnext,                         /* "Up Next" circle */
@@ -142,7 +142,7 @@ body#peek-body .html5-endscreen { /* NEW: Hides the main videowall */
     display: none !important;
 }
 
-/* G. CUSTOM PEEK CONTROLS (Top Right) */
+/* H. CUSTOM PEEK CONTROLS (Top Right) */
 #peek-controls {
     position: fixed; top: 20px; right: 20px;
     z-index: 2147483647 !important; /* Max Z-Index */
@@ -188,4 +188,29 @@ body#peek-body.peek-closing {
     /* Since the container behind the iframe is black, lowering opacity creates a "Fade to Black" */
     animation: peekFadeOut 1.0s ease-in-out forwards; 
     pointer-events: none !important;
+}
+
+/* === I. ZEN MAXIMIZE (The "Perfect Math" Fullscreen) === */
+
+/* 1. Hide the Native Fullscreen Button (It breaks the scrubber math) */
+body#peek-body .ytp-fullscreen-button {
+    display: none !important;
+}
+
+/* 2. The Maximized State (Applied to .yt-peek-container) */
+/* This overrides the default 80% width / 16:9 ratio to fill the screen */
+.yt-peek-container.peek-maximized {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    position: fixed !important;
+}
+
+/* 3. Ensure the Iframe fills the maximized container */
+.yt-peek-container.peek-maximized .yt-peek-iframe {
+    width: 100vw !important;
+    height: 100vh !important;
 }
