@@ -77,7 +77,7 @@
       "resourceTypes": ["xmlhttprequest", "script"]
     }
   },
-    {
+  {
     "id": 9,
     "priority": 1,
     "action": { "type": "block" },
