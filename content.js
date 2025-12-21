@@ -79,28 +79,47 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
     // 3. Key Listeners
     window.addEventListener('keydown', (e) => {
         // [Existing] ESCAPE: Close the Peek window
-        if (e.key === 'Escape') { 
+        const key = e.key.toLowerCase();
+        
+        // --- INPUT SAFETY CHECK ---
+        // If the user is typing in a search bar or comment field, ignore these shortcuts
+        // (Except Escape, which should usually still function)
+        const activeTag = document.activeElement.tagName.toLowerCase();
+        const isInput = activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable;
+        
+        if (isInput && key !== 'escape') return;
+
+        // --- SHORTCUTS ---
+
+        // 1. ESC or X: Close the Peek Window
+        if (key === 'escape' || key === 'x') { 
             e.preventDefault();
             e.stopPropagation(); 
             window.parent.postMessage("close-peek", "*"); 
         }
-        
-        // [Existing] 'f': Toggle Custom Zen Mode
-        if (e.key === 'f' || e.key === 'F') {
-             const activeTag = document.activeElement.tagName.toLowerCase();
-             const isInput = activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable;
-             if (!isInput) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.parent.postMessage("toggle-maximize", "*");
-             }
+
+        // 2. F: Toggle Zen Mode (Fullscreen)
+        else if (key === 'f') {
+            e.preventDefault();
+            e.stopPropagation();
+            window.parent.postMessage("toggle-maximize", "*");
         }
 
-        // [NEW] 'i': Block Miniplayer
-        // This stops the player from shrinking into the corner
-        if (e.key === 'i' || e.key === 'I') {
+        // 3. N: Open in New Tab
+        else if (key === 'n') {
             e.preventDefault();
-            e.stopImmediatePropagation(); // Critical: Stops YouTube's internal listener
+            e.stopPropagation();
+            // Clean URL removes the '&peek_mode=1' param
+            const cleanUrl = window.location.href.split('&')[0];
+            window.open(cleanUrl, '_blank');
+            window.parent.postMessage("close-peek", "*");
+        }
+
+        // 4. I: Block Miniplayer
+        // We use stopImmediatePropagation to kill YouTube's own listener
+        else if (key === 'i') {
+            e.preventDefault();
+            e.stopImmediatePropagation(); 
         }
 
     }, true);
