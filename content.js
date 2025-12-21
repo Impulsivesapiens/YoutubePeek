@@ -78,10 +78,31 @@ if (window.name === "yt-peek-view" || window.location.search.includes("peek_mode
 
     // 3. Key Listeners
     window.addEventListener('keydown', (e) => {
+        // [Existing] ESCAPE: Close the Peek window
         if (e.key === 'Escape') { 
+            e.preventDefault();
             e.stopPropagation(); 
             window.parent.postMessage("close-peek", "*"); 
         }
+        
+        // [Existing] 'f': Toggle Custom Zen Mode
+        if (e.key === 'f' || e.key === 'F') {
+             const activeTag = document.activeElement.tagName.toLowerCase();
+             const isInput = activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable;
+             if (!isInput) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.parent.postMessage("toggle-maximize", "*");
+             }
+        }
+
+        // [NEW] 'i': Block Miniplayer
+        // This stops the player from shrinking into the corner
+        if (e.key === 'i' || e.key === 'I') {
+            e.preventDefault();
+            e.stopImmediatePropagation(); // Critical: Stops YouTube's internal listener
+        }
+
     }, true);
 
     // 4. Disable Context Menu Clutter
